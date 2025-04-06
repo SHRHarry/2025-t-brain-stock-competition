@@ -1,79 +1,42 @@
 import pandas as pd
-import joblib
 import numpy as np
+import joblib
 
 def predict(test_path, template_path):
-    # === 1. 讀取資料 ===
+    # 載入模型與處理器
+    model = joblib.load("lgbm_model_top50.pkl")
+    imputer = joblib.load("imputer_top50.pkl")
+    threshold = joblib.load("threshold_top50.pkl")
+
+    # 正確讀取 top50 特徵名稱為 list of strings
+    top50_features = pd.read_csv("top50_features.csv", header=None).squeeze("columns").tolist()
+    print("🔍 Top 50 features loaded:", top50_features[:5])
+
+    # 載入測試資料
     test_df = pd.read_csv(test_path)
-    submission_template = pd.read_csv(template_path)
+    X_test_raw = test_df.drop(columns=["ID"], errors="ignore").select_dtypes(include=["number"])
 
-    # === 2. 載入模型與 Imputer ===
-    model = joblib.load("lgbm_model.pkl")
-    imputer = joblib.load("imputer.pkl")
+    # 補上訓練時的完整欄位（保證與 imputer 對齊）
+    X_test_full = X_test_raw.reindex(columns=imputer.feature_names_in_)
 
-    # print(f"model.feature_importances_ = {model.feature_importances_}")
+    # 補值
+    X_test_imputed_full = pd.DataFrame(imputer.transform(X_test_full), columns=imputer.feature_names_in_)
 
-    # === 3. 特徵預處理（與訓練邏輯一致） ===
-    # 移除非數值欄位與 ID
-    X_test = test_df.drop(columns=["ID"], errors="ignore")
-    X_test = X_test.select_dtypes(include=["number"])
+    # 篩選 top50 特徵
+    X_test_imputed_top50 = X_test_imputed_full[top50_features]
 
-    # 只保留與訓練階段一致的欄位（Imputer 記錄的欄位）
-    if hasattr(imputer, "feature_names_in_"):
-        model_columns = imputer.feature_names_in_
-        X_test = X_test.reindex(columns=model_columns)
+    # 推論
+    y_prob = model.predict(X_test_imputed_top50)
+    y_pred = (y_prob > threshold).astype(int)
 
-    # 填補缺失值
-    X_test_imputed = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
-
-    # === 4. 模型推論 ===
-    y_pred = model.predict(X_test_imputed)
-
-    # === 5. 套用到 submission 格式 ===
-    submission = submission_template.copy()
+    # 匯出 submission
+    submission = pd.read_csv(template_path)
     submission["飆股"] = y_pred
-
-    # === 6. 輸出結果 ===
-    submission.to_csv("submissions/submission.csv", index=False)
-    print("✅ 已產生 submission.csv")
-
-def feature_selection_predict(test_path, template_path, model_from_original=False):
-    # === 1. 載入模型、Imputer、Top N 特徵名稱 ===
-    if model_from_original:
-        model = joblib.load("lgbm_model_top_from_original.pkl")
-        imputer = joblib.load("imputer_top_from_original.pkl")
-        top_features = joblib.load("top_features_from_original.pkl")
-    else:
-        model = joblib.load("lgbm_model_top.pkl")
-        imputer = joblib.load("imputer_top.pkl")
-        top_features = joblib.load("top_features.pkl")
-
-    # === 2. 載入測試資料與提交範本 ===
-    test_df = pd.read_csv(test_path)
-    submission_template = pd.read_csv(template_path)
-
-    # === 3. 資料前處理 ===
-    X_test = test_df.drop(columns=["ID"], errors="ignore")
-    X_test = X_test.select_dtypes(include=["number"])
-    X_test = X_test.reindex(columns=top_features)
-    X_test_imputed = pd.DataFrame(imputer.transform(X_test), columns=top_features)
-
-    # === 4. 模型推論 ===
-    y_pred = model.predict(X_test_imputed)
-
-    # === 5. 輸出 submission.csv ===
-    submission = submission_template.copy()
-    submission["飆股"] = y_pred
-    if model_from_original:
-        submission.to_csv("submissions/submission_from_original.csv", index=False)
-        print("✅ 已產生 submission_from_original.csv")
-    else:
-        submission.to_csv("submissions/submission.csv", index=False)
-        print("✅ 已產生 submission.csv")
+    submission.to_csv("submission_supervised_top50.csv", index=False)
+    print("✅ 已產生 submission_supervised_top50.csv（使用 SHAP 精選特徵）")
 
 if __name__ == "__main__":
-    # predict(r"E:\side_project\stock_competition\data\38_Public_Test_Set_and_Submmision_Template\public_x.csv",
-    #         r"E:\side_project\stock_competition\data\38_Public_Test_Set_and_Submmision_Template\submission_template_public.csv")
-    feature_selection_predict(r"E:\side_project\stock_competition\data\38_Public_Test_Set_and_Submmision_Template\public_x.csv",
-            r"E:\side_project\stock_competition\data\38_Public_Test_Set_and_Submmision_Template\submission_template_public.csv",
-            model_from_original=True)
+    predict(
+        r"E:\side_project\stock_competition\data\38_Public_Test_Set_and_Submmision_Template_V2\public_x.csv",
+        r"E:\side_project\stock_competition\data\38_Public_Test_Set_and_Submmision_Template_V2\submission_template_public.csv"
+    )
