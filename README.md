@@ -1,9 +1,43 @@
 # 2025-t-brain-stock-competition
 
 ## Experiment Logs
-- 2025-3-24 Harry
+- 2025-04-15 Harry
+    1. 資料前處理實驗：刪除缺值率10%/20%/30%/.../90%的欄位會剩下多少欄位
+        - 發現10%~80%刪除的欄位沒很多，但是到90%時斷崖式下降至2000多欄位。目前後續實驗主要基於此2000的欄位進行
+    2. SHAP 分析 (僅對飆股類別進行)，選出 SHAP 平均重要性前200/300/500/2000比特徵篩選特徵重新訓練。觀察到200筆的F1 標準差下降幅度最大，泛用性最佳，故選用200筆的實驗結果
+    4. performance on training data(8:2)
+        | 資料量     | F1 平均值 | F1 標準差 | AUC 平均值 | AUC 標準差 | Threshold 平均值 | Threshold 標準差 | 綜合穩定性指標 |
+        |------------|-----------|-----------|-------------|-------------|------------------|------------------|----------------|
+        | 500筆資料  | 0.7454    | 0.0280    | 0.9894      | 0.0020      | 0.4473           | 0.1208           | 0.7314         |
+        | 2000筆資料 | 0.6475    | 0.0325    | 0.9883      | 0.0015      | 0.8218           | 0.0293           | 0.6313         |
+        | 300筆資料  | 0.6580    | 0.0272    | 0.9896      | 0.0016      | 0.8505           | 0.0130           | 0.6444         |
+        | 200筆資料  | 0.6643    | 0.0162    | 0.9898      | 0.0014      | 0.8619           | 0.0188           | 0.6562         |
+
+    5. Score on testing data(最終選用200筆的實驗結果)
+        - F1 Score: 0.6997
+- 2025-04-06 Harry
+    1. SHAP 分析 (僅對飆股類別進行)，選出 SHAP 平均重要性前 50 名特徵篩選特徵重新訓練
+    2. 計算 scale_pos_weight，找出「是飆股」&「不是飆股」的比例
+    3. 交叉驗證與並找出最佳threshold
+    4. performance on training data(8:2) --> 不佳，不列出來
+    5. Score on testing data
+        - F1 Score: 0.5287
+- 2025-03-28 Harry
+    1. 原作法訓練好的模型作為pretrained，找出 top N importance的特徵，篩選特徵重新訓練
+    2. 先訓練好一個base model用來找出top N importance的特徵，篩選特徵重新訓練
+    3. performance on training data(8:2)
+        - Accuracy: 0.9777
+        - AUC: 0.9836
+        - F1 Score: 0.3421
+    4. Score on testing data
+        - F1 Score: 0.5821
+
+- 2025-03-24 Harry
     1. 移除缺失率 > 90% 的欄位
     2. 去除非數值欄位 + 切分資料
     3. SMOTE 上取樣飆股，處理不平衡資料
     4. lightgbm classifier with is_unbalance=True
-    5. Accuracy: 0.9945 on training data(8:2)
+    5. performance on training data(8:2)
+        - Accuracy: 0.9945
+    5. Score on testing data
+        - F1 Score: 0.5375
