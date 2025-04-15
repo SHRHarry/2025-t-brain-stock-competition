@@ -12,32 +12,40 @@
         | 2000筆資料 | 0.6475    | 0.0325    | 0.9883      | 0.0015      | 0.8218           | 0.0293           | 0.6313         |
         | 300筆資料  | 0.6580    | 0.0272    | 0.9896      | 0.0016      | 0.8505           | 0.0130           | 0.6444         |
         | 200筆資料  | 0.6643    | 0.0162    | 0.9898      | 0.0014      | 0.8619           | 0.0188           | 0.6562         |
-
     5. Score on testing data(最終選用200筆的實驗結果)
-        - F1 Score: 0.6997
+        | F1 Score |
+        |----------|
+        | 0.6997   |
 - 2025-04-06 Harry
     1. SHAP 分析 (僅對飆股類別進行)，選出 SHAP 平均重要性前 50 名特徵篩選特徵重新訓練
     2. 計算 scale_pos_weight，找出「是飆股」&「不是飆股」的比例
     3. 交叉驗證與並找出最佳threshold
     4. performance on training data(8:2) --> 不佳，不列出來
     5. Score on testing data
-        - F1 Score: 0.5287
+        | F1 Score |
+        |----------|
+        | 0.5287   |
 - 2025-03-28 Harry
     1. 原作法訓練好的模型作為pretrained，找出 top N importance的特徵，篩選特徵重新訓練
     2. 先訓練好一個base model用來找出top N importance的特徵，篩選特徵重新訓練
     3. performance on training data(8:2)
-        - Accuracy: 0.9777
-        - AUC: 0.9836
-        - F1 Score: 0.3421
+        | Accuracy | AUC    | F1 Score |
+        |----------|--------|----------|
+        | 0.9777   | 0.9836 | 0.3421   |
     4. Score on testing data
-        - F1 Score: 0.5821
-
+        | F1 Score |
+        |----------|
+        | 0.5821   |
 - 2025-03-24 Harry
     1. 移除缺失率 > 90% 的欄位
     2. 去除非數值欄位 + 切分資料
     3. SMOTE 上取樣飆股，處理不平衡資料
     4. lightgbm classifier with is_unbalance=True
     5. performance on training data(8:2)
-        - Accuracy: 0.9945
+        | Accuracy |
+        |----------|
+        | 0.9945   |
     5. Score on testing data
-        - F1 Score: 0.5375
+        | F1 Score |
+        |----------|
+        | 0.5375   |
