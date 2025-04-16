@@ -54,7 +54,11 @@ def train(train_path):
 
     # 交叉驗證與 threshold
     kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    thresholds, models = [], []
+    models = []
+
+    metrics = {"f1": [],
+               "auc": [],
+               "threshold": []}
 
     for fold, (train_idx, val_idx) in enumerate(kf.split(X_top200, y)):
         X_train, X_val = X_top200.iloc[train_idx], X_top200.iloc[val_idx]
@@ -70,31 +74,43 @@ def train(train_path):
 
         f1 = 2 * (prec * rec) / (prec + rec + 1e-6)
         best_threshold = thres[np.argmax(f1)]
-        thresholds.append(best_threshold)
         models.append(model)
+
+        metrics["f1"].append(np.max(f1))
+        metrics["auc"].append(roc_auc_score(y_val, y_prob))
+        metrics["threshold"].append(best_threshold)
 
         print(f"Fold {fold+1}: AUC={roc_auc_score(y_val, y_prob):.4f}, F1={np.max(f1):.4f}, Threshold={best_threshold:.4f}")
 
     # 統計最佳門檻
-    mean_threshold = np.mean(thresholds)
-    print(f"\n✅ 平均最佳 Threshold: {mean_threshold:.4f}")
+    f1_mean = np.mean(metrics["f1"])
+    f1_std = np.std(metrics["f1"])
+    auc_mean = np.mean(metrics["auc"])
+    auc_std = np.std(metrics["auc"])
+    threshold_mean = np.mean(metrics["threshold"])
+    threshold_std = np.std(metrics["threshold"])
+    stability_score = f1_mean - 0.5 * f1_std
+    print(f"\n✅ F1 平均值: {f1_mean:.4f}, 標準差: {f1_std:.4f}")
+    print(f"✅ AUC 平均值: {auc_mean:.4f}, 標準差: {auc_std:.4f}")
+    print(f"✅ Threshold 平均值: {threshold_mean:.4f}, 標準差: {threshold_std:.4f}")
+    print(f"✅ 綜合穩定性指標(F1 mean - 0.5*std): {stability_score:.4f}")
 
     # 用全資料重訓（僅 top 200 特徵）
     dtrain_full = lgb.Dataset(X_top200, label=y)
     model_final = lgb.train(params, dtrain_full, num_boost_round=200)
 
     # 儲存模型與處理器
-    joblib.dump(model_final, "lgbm_model_top200.pkl")
-    joblib.dump(imputer, "imputer_top200.pkl")
-    joblib.dump(mean_threshold, "threshold_top200.pkl")
+    joblib.dump(model_final, "derived_lgbm_model_top200.pkl")
+    joblib.dump(imputer, "derived_imputer_top200.pkl")
+    joblib.dump(threshold_mean, "derived_threshold_top200.pkl")
 
     # 額外輸出 top200 清單
-    pd.Series(top200_features).to_csv("top200_features.csv", index=False)
+    pd.Series(top200_features).to_csv("derived_top200_features.csv", index=False)
     print("✅ 模型、imputer、threshold、top200 特徵已儲存完畢")
 
 
 if __name__ == "__main__":
-    train(r"D:\data\38_Training_Data_Set_V2\cleaned_01_training.csv")
+    train(r"D:\data\38_Training_Data_Set_V2\derived_cleaned_01_training.csv")
     '''
     Fold 1: AUC=0.9908, F1=0.7481, Threshold=0.3544
     Fold 2: AUC=0.9856, F1=0.7010, Threshold=0.6750
@@ -145,5 +161,18 @@ if __name__ == "__main__":
     ✅ AUC 平均值: 0.9898, 標準差: 0.0014
     ✅ Threshold 平均值: 0.8619, 標準差: 0.0188
     ✅ 綜合穩定性指標(F1 mean - 0.5*std): 0.6562
+    ✅ 模型、imputer、threshold、top200 特徵已儲存完畢
+    '''
+    '''
+    Fold 1: AUC=0.9916, F1=0.7045, Threshold=0.8849
+    Fold 2: AUC=0.9924, F1=0.7398, Threshold=0.9158
+    Fold 3: AUC=0.9929, F1=0.7326, Threshold=0.8579
+    Fold 4: AUC=0.9891, F1=0.7259, Threshold=0.8748
+    Fold 5: AUC=0.9922, F1=0.7430, Threshold=0.8857
+
+    ✅ F1 平均值: 0.7292, 標準差: 0.0137
+    ✅ AUC 平均值: 0.9916, 標準差: 0.0013
+    ✅ Threshold 平均值: 0.8838, 標準差: 0.0189
+    ✅ 綜合穩定性指標(F1 mean - 0.5*std): 0.7223
     ✅ 模型、imputer、threshold、top200 特徵已儲存完畢
     '''
