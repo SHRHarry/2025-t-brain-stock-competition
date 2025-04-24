@@ -1,3 +1,8 @@
 __pycache__
 *.csv
 *.pkl
+harry/top_features/
+harry/submissions/
+harry/catboost_info/
+harry/fig/
+harry/titles/

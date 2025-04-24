@@ -38,12 +38,14 @@ def generate_derived_features(df: pd.DataFrame, top_features: list, corr_thresho
 
 if __name__ == "__main__":
     # 範例使用方式
-    df = pd.read_csv(r"D:\data\38_Public_Test_Set_and_Submmision_Template_V2\public_x.csv")
+    df = pd.read_csv(r"D:\data\38_Private_Test_Set_and_Submission_Template_V2\private_x.csv")
+    # df = pd.read_csv(r"D:\data\38_Public_Test_Set_and_Submmision_Template_V2\public_x.csv")
     # df = pd.read_csv(r"D:\data\38_Training_Data_Set_V2\cleaned_01_training.csv")
     df = df.select_dtypes(include=["number"])
     top_features = pd.read_csv("top200_features.csv", header=None).squeeze("columns").tolist()
 
     df_derived = generate_derived_features(df, top_features)
-    df_derived.to_csv(r"D:\data\38_Public_Test_Set_and_Submmision_Template_V2\derived_public_x.csv", index=False)
+    df_derived.to_csv(r"D:\data\38_Private_Test_Set_and_Submission_Template_V2\derived_private_x.csv", index=False)
+    # df_derived.to_csv(r"D:\data\38_Public_Test_Set_and_Submmision_Template_V2\derived_public_x.csv", index=False)
     # df_derived.to_csv(r"D:\data\38_Training_Data_Set_V2\derived_only_01_training.csv", index=False)
-    print("✅ 已產出 derived_public_x.csv 含衍生特徵")
+    print("✅ 已產出 derived_private_x.csv 含衍生特徵")

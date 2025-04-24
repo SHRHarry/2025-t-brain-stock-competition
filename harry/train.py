@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
 import joblib
-import lightgbm as lgb
 import shap
+import lightgbm as lgb
+from catboost import CatBoostClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import f1_score, roc_auc_score, precision_recall_curve
 
-def train(train_path):
+def train(train_path, model_type="lgbm"):
     # 讀取與前處理資料
     df = pd.read_csv(train_path)
     df = df.drop(columns=["ID"], errors="ignore")
@@ -64,14 +65,17 @@ def train(train_path):
         X_train, X_val = X_top500.iloc[train_idx], X_top500.iloc[val_idx]
         y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
 
-        dtrain = lgb.Dataset(X_train, label=y_train)
-        dval = lgb.Dataset(X_val, label=y_val)
+        if model_type == "catboost":
+            model = CatBoostClassifier(verbose=0, random_seed=42)
+            model.fit(X_train, y_train)
+            y_prob = model.predict_proba(X_val)[:, 1]
+        else:
+            dtrain = lgb.Dataset(X_train, label=y_train)
+            dval = lgb.Dataset(X_val, label=y_val)
+            model = lgb.train(params, dtrain, valid_sets=[dval])
+            y_prob = model.predict(X_val)
 
-        model = lgb.train(params, dtrain, valid_sets=[dval])
-
-        y_prob = model.predict(X_val)
         prec, rec, thres = precision_recall_curve(y_val, y_prob)
-
         f1 = 2 * (prec * rec) / (prec + rec + 1e-6)
         best_threshold = thres[np.argmax(f1)]
         models.append(model)
@@ -96,35 +100,26 @@ def train(train_path):
     print(f"✅ 綜合穩定性指標(F1 mean - 0.5*std): {stability_score:.4f}")
 
     # 用全資料重訓（僅 top 500 特徵）
-    dtrain_full = lgb.Dataset(X_top500, label=y)
-    model_final = lgb.train(params, dtrain_full, num_boost_round=500)
+    if model_type == "catboost":
+        model_final = CatBoostClassifier(verbose=0, random_seed=42)
+        model_final.fit(X_top500, y)
+    else:
+        dtrain_full = lgb.Dataset(X_top500, label=y)
+        model_final = lgb.train(params, dtrain_full, num_boost_round=500)
 
     # 儲存模型與處理器
-    joblib.dump(model_final, "derived_lgbm_model_top500.pkl")
-    joblib.dump(imputer, "derived_imputer_top500.pkl")
-    joblib.dump(threshold_mean, "derived_threshold_top500.pkl")
+    joblib.dump(model_final, f"checkpoints/derived_{model_type}_model_top500.pkl")
+    joblib.dump(imputer, f"checkpoints/derived_{model_type}_imputer_top500.pkl")
+    joblib.dump(threshold_mean, f"checkpoints/derived_{model_type}_threshold_top500.pkl")
 
     # 額外輸出 top500 清單
-    pd.Series(top500_features).to_csv("derived_top500_features.csv", index=False, header=False)
+    pd.Series(top500_features).to_csv(f"top_features/derived_{model_type}_top500_features.csv", index=False, header=False)
     print("✅ 模型、imputer、threshold、top500 特徵已儲存完畢")
 
 
 if __name__ == "__main__":
-    train(r"D:\data\38_Training_Data_Set_V2\derived_cleaned_01_training.csv")
-    '''
-    Fold 1: AUC=0.9916, F1=0.7045, Threshold=0.8849
-    Fold 2: AUC=0.9924, F1=0.7398, Threshold=0.9158
-    Fold 3: AUC=0.9929, F1=0.7326, Threshold=0.8579
-    Fold 4: AUC=0.9891, F1=0.7259, Threshold=0.8748
-    Fold 5: AUC=0.9922, F1=0.7430, Threshold=0.8857
-
-    ✅ F1 平均值: 0.7292, 標準差: 0.0137
-    ✅ AUC 平均值: 0.9916, 標準差: 0.0013
-    ✅ Threshold 平均值: 0.8838, 標準差: 0.0189
-    ✅ 綜合穩定性指標(F1 mean - 0.5*std): 0.7223
-    ✅ 模型、imputer、threshold、top200 特徵已儲存完畢
-    '''
-    '''
+    train(r"D:\data\38_Training_Data_Set_V2\derived_cleaned_01_training.csv", model_type="catboost")
+    '''lightgbm
     Fold 1: AUC=0.9922, F1=0.7140, Threshold=0.8526
     Fold 2: AUC=0.9924, F1=0.7526, Threshold=0.8963
     Fold 3: AUC=0.9929, F1=0.7643, Threshold=0.8430
@@ -135,5 +130,18 @@ if __name__ == "__main__":
     ✅ AUC 平均值: 0.9918, 標準差: 0.0013
     ✅ Threshold 平均值: 0.8635, 標準差: 0.0199
     ✅ 綜合穩定性指標(F1 mean - 0.5*std): 0.7351
+    ✅ 模型、imputer、threshold、top500 特徵已儲存完畢
+    '''
+    '''catboost
+    Fold 1: AUC=0.9933, F1=0.7992, Threshold=0.2102
+    Fold 2: AUC=0.9920, F1=0.8247, Threshold=0.2445
+    Fold 3: AUC=0.9936, F1=0.8145, Threshold=0.1386
+    Fold 4: AUC=0.9911, F1=0.7977, Threshold=0.2240
+    Fold 5: AUC=0.9932, F1=0.8063, Threshold=0.2291
+
+    ✅ F1 平均值: 0.8085, 標準差: 0.0101
+    ✅ AUC 平均值: 0.9926, 標準差: 0.0009
+    ✅ Threshold 平均值: 0.2093, 標準差: 0.0370
+    ✅ 綜合穩定性指標(F1 mean - 0.5*std): 0.8035
     ✅ 模型、imputer、threshold、top500 特徵已儲存完畢
     '''
