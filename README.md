@@ -1,4 +1,9 @@
-# 2025-t-brain-stock-competition
+# 2025永豐AI GO競賽：股神對決
+
+[![Competition](https://img.shields.io/badge/T--Brain-Competition-blue)](https://tbrain.trendmicro.com.tw/Competitions/Details/38)
+
+## Introduction
+> 訓練資料集欄位約10200欄，且大部分欄位有缺值，競賽目標是找出是否為飆股，計分方式採用F1 score
 
 ## Experiment Logs
 - 2025-04-22 Harry
@@ -14,7 +19,7 @@
         |----------|
         | `0.8076` |
 - 2025-04-21 Harry
-    1. 沿用04-17的作法，更換模型為catboost，多項指標達career high，performance on training data(8:2)
+    1. 沿用04-17的作法，更換模型為CatBoost，多項指標達career high，performance on training data(8:2)
         | 資料量     | F1 平均值 | F1 標準差 | AUC 平均值 | AUC 標準差 | Threshold 平均值 | Threshold 標準差 | 綜合穩定性指標 |
         |------------|-----------|-----------|-------------|-------------|------------------|------------------|----------------|
         | 500筆資料  | `0.8085`  | `0.0101`   | `0.9926`    | `0.0009`    | 0.2093           | 0.0370           | `0.8035`       |
