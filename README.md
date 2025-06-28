@@ -3,8 +3,7 @@
 [![Competition](https://img.shields.io/badge/T--Brain-Competition-blue)](https://tbrain.trendmicro.com.tw/Competitions/Details/38)
 
 ## Introduction
-> 訓練資料集欄位約10200欄，且大部分欄位有缺值，競賽目標是找出是否為飆股，計分方式採用F1 score`
-> 最終排名：48/868
+> 訓練資料集欄位約10200欄，且大部分欄位有缺值，競賽目標是找出是否為飆股，計分方式採用`F1 score`，最終排名：`48/868`
 
 ## Experiment Logs
 - 2025-04-22 Harry
